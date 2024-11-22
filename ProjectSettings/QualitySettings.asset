@@ -122,13 +122,13 @@ QualitySettings:
     globalTextureMipmapLimit: 0
     textureMipmapLimitSettings: []
     anisotropicTextures: 1
-    antiAliasing: 4
+    antiAliasing: 2
     softParticles: 0
     softVegetation: 1
     realtimeReflectionProbes: 1
     billboardsFaceCameraPosition: 1
     useLegacyDetailDistribution: 1
-    vSyncCount: 1
+    vSyncCount: 0
     realtimeGICPUUsage: 25
     lodBias: 2
     maximumLODLevel: 0
@@ -169,6 +169,7 @@ QualitySettings:
     Server: 0
     Stadia: 2
     Standalone: 2
+    VisionOS: 0
     WebGL: 1
     Windows Store Apps: 2
     XboxOne: 2
