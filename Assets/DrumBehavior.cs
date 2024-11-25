@@ -6,34 +6,60 @@ public class DrumBehavior : MonoBehaviour
 {
     public MeshRenderer drumHeadRenderer; 
     public AudioSource drumSound;         
-    public Color hitColor = Color.black;    
+    public Color hitGlowColor = Color.white; 
+    public float glowIntensity = 2.0f;
     public float resetDelay = 0.5f; 
-    public float colorIntensity = 2.0f;      
 
-    private Color originalColor;          
+
+    private Color originalEmissionColor;          
     private Material drumMaterial;
     void Start()
     {
-        
-        if (drumHeadRenderer != null && drumHeadRenderer.material != null)
+        if (drumHeadRenderer != null)
         {
-            drumMaterial = drumHeadRenderer.material;
-            //originalColor = drumHeadRenderer.material.color;
-            originalColor = drumMaterial.color;
+            // Create a unique material instance for the drum
+            drumMaterial = new Material(drumHeadRenderer.material);
+            drumHeadRenderer.material = drumMaterial;
+
+            // Store the original emission color
+            if (drumMaterial.HasProperty("_EmissionColor"))
+            {
+                originalEmissionColor = drumMaterial.GetColor("_EmissionColor");
+            }
+            else
+            {
+                originalEmissionColor = Color.black; // Default to black if not set
+            }
         }
     }
 
     
     public void OnDrumHit()
     {
-        // Change the color of the drumhead
-        if (drumHeadRenderer != null && drumHeadRenderer.material != null)
+       Debug.Log($"Drum {name}: Hit detected.");
+        // Trigger the glow effect
+        if (drumMaterial != null)
         {
-            //drumHeadRenderer.material.color = hitColor;
-            // Create a "hit" effect by blending the original color with the hit color
-            drumMaterial.color = originalColor * colorIntensity + hitColor;
+            if (drumMaterial.HasProperty("_EmissionColor"))
+            {
+                Color glowColor = hitGlowColor * glowIntensity;
+                drumMaterial.SetColor("_EmissionColor", glowColor);
+                drumMaterial.EnableKeyword("_EMISSION");
+                
+            }
 
-            Invoke(nameof(ResetColor), resetDelay);
+            // Reset the color after the delay
+            Invoke(nameof(ResetGlow), resetDelay);
+        }
+        if (drumMaterial != null && drumMaterial.IsKeywordEnabled("_EMISSION"))
+        {
+            Color glowColor = hitGlowColor * glowIntensity;
+            drumMaterial.EnableKeyword("_EMISSION");
+            drumMaterial.SetColor("_EmissionColor", glowColor);
+            
+
+            // Reset glow after delay
+            Invoke(nameof(ResetGlow), resetDelay);
         }
 
         // Play the drum sound
@@ -41,16 +67,18 @@ public class DrumBehavior : MonoBehaviour
         {
             drumSound.pitch = Random.Range(0.9f, 1.1f);
             drumSound.Play();
+            Debug.Log($"Drum {name}: Sound played.");
         }
     }
 
     
-    private void ResetColor()
+    private void ResetGlow()
     {
-        if (drumHeadRenderer != null && drumHeadRenderer.material != null)
+        // Reset the emission color to its original state
+        if (drumMaterial != null && drumMaterial.IsKeywordEnabled("_EMISSION"))
         {
-            //drumHeadRenderer.material.color = originalColor;
-            drumMaterial.color = originalColor;
+            drumMaterial.SetColor("_EmissionColor", originalEmissionColor);
+            
         }
     }
 }
