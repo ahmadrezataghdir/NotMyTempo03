@@ -148,6 +148,8 @@ public class DrumGameManager : MonoBehaviour
         progressBar.fillAmount = progress;
     }
 
+    /*
+
     // Generate and show the color sequence
     IEnumerator GenerateColorSequence()
     {
@@ -180,6 +182,53 @@ public class DrumGameManager : MonoBehaviour
         isShowingSequence = false;
     }
 
+    */
+
+    IEnumerator GenerateColorSequence()
+    {
+        isShowingSequence = true;
+        currentSequence.Clear();
+
+        // Initialize the current sequence and match speaker colors to drums
+        for (int i = 0; i < speakers.Count; i++)
+        {
+            int randomIndex = Random.Range(0, drums.Count);
+            Color drumColor = drums[randomIndex].material.color;
+            currentSequence.Add(drumColor);
+            speakers[i].material.color = drumColor; // Ensure speaker matches drum color
+        }
+
+        // Highlight each speaker in sequence and play sound
+        for (int i = 0; i < speakers.Count; i++)
+        {
+            Material speakerMaterial = speakers[i].material;
+
+            // Store original color
+            Color originalColor = speakerMaterial.color;
+
+            // Add glow effect (emission or brighter color)
+            speakerMaterial.SetColor("_EmissionColor", originalColor * glowIntensity);
+
+            // Play the corresponding sound
+            audioSource.PlayOneShot(drums_sounds[i]);
+
+            // Wait to show the highlight
+            yield return new WaitForSeconds(0.6f);
+
+            // Remove glow effect
+            speakerMaterial.SetColor("_EmissionColor", Color.black);
+
+            // Wait briefly before highlighting the next one
+            yield return new WaitForSeconds(0.3f);
+        }
+
+        // Reset and allow user interaction
+        currentIndex = 0;
+        hitTimer = hitTimerDuration;
+        isShowingSequence = false;
+    }
+
+
 
     public void OnDrumSelected(Material drum)
     {
@@ -208,37 +257,6 @@ public class DrumGameManager : MonoBehaviour
         }
     }
 
-/*
-    public void OnDrumHit(DrumBehavior drum)
-    {
-        if (!isGameActive || isShowingSequence) return;
-
-
-        // Find the corresponding cylinder index for the drum
-        int drumIndex = drums.FindIndex(c => c.transform == drum.transform);
-
-        Debug.Log($"Drum {drumIndex}: Hit detected.");
-        if (drumIndex >= 0)
-        {
-            // Check if the hit matches the current sequence
-            if (drums[drumIndex].material.color == currentSequence[currentIndex])
-            {
-                currentIndex++;
-                if (currentIndex == currentSequence.Count)
-                {
-                    audioSource.PlayOneShot(correctSound);
-                    score += 5;
-                    UpdateScoreUI();
-                    StartCoroutine(GenerateColorSequence());
-                }
-            }
-            else
-            {
-                HandleMiss();
-            }
-        }
-    }
-    */
 
     // Handle a miss
     void HandleMiss()
