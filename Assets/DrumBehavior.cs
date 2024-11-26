@@ -13,8 +13,12 @@ public class DrumBehavior : MonoBehaviour
 
     private Color originalEmissionColor;          
     private Material drumMaterial;
+
+    public DrumGameManager gameManager;
     void Start()
+
     {
+       
         if (drumHeadRenderer != null)
         {
             // Create a unique material instance for the drum
@@ -36,7 +40,7 @@ public class DrumBehavior : MonoBehaviour
     
     public void OnDrumHit()
     {
-       Debug.Log($"Drum {name}: Hit detected.");
+       
         // Trigger the glow effect
         if (drumMaterial != null)
         {
@@ -67,8 +71,12 @@ public class DrumBehavior : MonoBehaviour
         {
             drumSound.pitch = Random.Range(0.9f, 1.1f);
             drumSound.Play();
-            Debug.Log($"Drum {name}: Sound played.");
+            //Debug.Log($"Drum {name}: Sound played.");
         }
+
+        Debug.Log($"Drum1 {name}: Hit.");
+
+        FindObjectOfType<DrumGameManager>()?.OnDrumSelected(drumMaterial);
     }
 
     
