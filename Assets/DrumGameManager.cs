@@ -11,6 +11,7 @@ public class DrumGameManager : MonoBehaviour
     public List<Renderer> drums;        
     public List<Renderer> speakers;         
     
+    public TextMeshProUGUI tempTimer;       
     public TextMeshProUGUI timerText;       
     public TextMeshProUGUI hitTimerText;
     public TextMeshProUGUI scoreText;       
@@ -35,8 +36,12 @@ public class DrumGameManager : MonoBehaviour
     private bool isGameActive = false;      
     private bool isShowingSequence = false; 
 
-    private List<Color> currentSequence = new List<Color>(); 
+    private List<int> sequenceIndices = new List<int>();
     private int currentIndex = 0;           
+
+    private bool isInitialCountdown = true;
+
+    private bool isGameOver = false;
 
     void Start()
     {
@@ -48,6 +53,8 @@ public class DrumGameManager : MonoBehaviour
 
     void Update()
     {
+        if (isGameOver) return;
+
         if (isGameActive)
         {
             // Update the hit timer
@@ -62,17 +69,29 @@ public class DrumGameManager : MonoBehaviour
             }
 
             // Update the primary timer
-            if (primaryTimer > 0)
+            if (!isInitialCountdown && primaryTimer > 0)
             {
                 primaryTimer -= Time.deltaTime;
                 UpdateTimerUI();
             }
-            else
+            else if(!isInitialCountdown && primaryTimer <= 0)
             {
                 EndGame();
             }
         }
     }
+
+    void ResetGameElements()
+{
+    foreach (var speaker in speakers)
+    {
+        speaker.material.color = Color.white;
+    }
+    foreach (var drum in drums)
+    {
+        drum.material.color = Color.white;
+    }
+}
 
     // Initialize game settings
     void InitializeGame()
@@ -112,7 +131,10 @@ public class DrumGameManager : MonoBehaviour
     // End the game
     void EndGame()
     {
+        isGameOver = true;
         isGameActive = false;
+         StopAllCoroutines();
+         ResetGameElements(); // Reset all game visuals
         gameOverMenu.SetActive(true);
         timerText.text = "Time's Up!";
     }
@@ -123,23 +145,11 @@ public class DrumGameManager : MonoBehaviour
         SceneManager.LoadScene(currentSceneName);
     }
 
-    // Update the timer UI
-    void UpdateTimerUI()
-    {
-        timerText.text = primaryTimer > 0 ? "" + Mathf.Floor(primaryTimer).ToString() : "Time's Up!";
-    }
-
-    // Update score UI
-    void UpdateScoreUI()
-    {
-        scoreText.text = "" + score;
-    }
-
-    // Update miss UI
-    void UpdateMissUI()
-    {
-        missText.text = "" + misses + "/5";
-    }
+    
+    // Update UI elements
+    void UpdateTimerUI() => timerText.text = primaryTimer > 0 ? Mathf.Floor(primaryTimer).ToString() : "Time's Up!";
+    void UpdateScoreUI() => scoreText.text = "" + score;
+    void UpdateMissUI() => missText.text = "" + misses + "/5";
 
     // Update the progress bar
     void UpdateProgressBar(float progress)
@@ -148,79 +158,68 @@ public class DrumGameManager : MonoBehaviour
         progressBar.fillAmount = progress;
     }
 
-    /*
-
-    // Generate and show the color sequence
-    IEnumerator GenerateColorSequence()
-    {
-        isShowingSequence = true;
-        currentSequence.Clear();
-
-        
-        // Randomize speaker colors based on drum colors
-        foreach (var speaker in speakers)
-        {
-            int randomIndex = Random.Range(0, drums.Count);
-            Color randomColor = drums[randomIndex].material.color;
-            currentSequence.Add(randomColor);
-            speaker.material.color = randomColor;
-            //audioSource.PlayOneShot(drums_sounds[randomIndex]);
-        }
-
-        
-        foreach (var speaker in speakers)
-        {
-            speaker.material.color *= glowIntensity;
-            yield return new WaitForSeconds(0.6f);
-            speaker.material.color /= glowIntensity;
-            yield return new WaitForSeconds(0.3f);
-        }
-        
-
-        currentIndex = 0;
-        hitTimer = hitTimerDuration;
-        isShowingSequence = false;
-    }
-
-    */
+   
 
     IEnumerator GenerateColorSequence()
     {
-        isShowingSequence = true;
-        currentSequence.Clear();
+        if (isGameOver) yield break;
 
-        // Initialize the current sequence and match speaker colors to drums
-        for (int i = 0; i < speakers.Count; i++)
+        isShowingSequence = true;
+        sequenceIndices.Clear();
+
+        // Countdown before the sequence starts
+        for (int i = 3; i > 0; i--)
         {
-            int randomIndex = Random.Range(0, drums.Count);
-            Color drumColor = drums[randomIndex].material.color;
-            currentSequence.Add(drumColor);
-            speakers[i].material.color = drumColor; // Ensure speaker matches drum color
+            tempTimer.text = $"{i}";
+            yield return new WaitForSeconds(1f);
         }
 
-        // Highlight each speaker in sequence and play sound
-        for (int i = 0; i < speakers.Count; i++)
+        tempTimer.text = ""; // Clear the timer text
+
+        // Allow the primary timer to start decrementing after the initial countdown
+        if (isInitialCountdown)
         {
-            Material speakerMaterial = speakers[i].material;
+            isInitialCountdown = false;
+        }
 
-            // Store original color
-            Color originalColor = speakerMaterial.color;
+        // Hide all speaker colors (set to white)
+        foreach (var speaker in speakers)
+        {
+            speaker.material.color = Color.white;
+        }
 
-            // Add glow effect (emission or brighter color)
-            speakerMaterial.SetColor("_EmissionColor", originalColor * glowIntensity);
 
-            // Play the corresponding sound
-            audioSource.PlayOneShot(drums_sounds[i]);
+        // Generate a random sequence
+        for (int i = 0; i < drums.Count; i++)
+        {
+            sequenceIndices.Add(i);
+        }
 
-            // Wait to show the highlight
+        sequenceIndices.Shuffle(); // Randomize the order
+
+        // Show the sequence
+        foreach (int index in sequenceIndices)
+        {
+            Renderer speaker = speakers[index];
+
+            // Highlight the speaker
+            Color originalColor = drums[index].material.color;
+            speaker.material.color = originalColor * glowIntensity;
+
+            // Play sound
+            audioSource.PlayOneShot(drums_sounds[index]);
+
+            // Wait
             yield return new WaitForSeconds(0.6f);
 
-            // Remove glow effect
-            speakerMaterial.SetColor("_EmissionColor", Color.black);
+            // Reset to white
+            //speaker.material.color = Color.white;
+            Debug.Log("Nothing");
 
-            // Wait briefly before highlighting the next one
             yield return new WaitForSeconds(0.3f);
         }
+
+        
 
         // Reset and allow user interaction
         currentIndex = 0;
@@ -228,22 +227,21 @@ public class DrumGameManager : MonoBehaviour
         isShowingSequence = false;
     }
 
-
-
-    public void OnDrumSelected(Material drum)
+    public void OnDrumSelected(Material drumMaterial)
     {
 
-        Debug.Log($"Drum2 {drum.name}: Hit.");
+        Debug.Log($"Drum2 {drumMaterial.name}: Hit.");
 
         if (!isGameActive || isShowingSequence) return;
 
+        int expectedIndex = sequenceIndices[currentIndex];
+
         // Check if selected drum matches the current sequence
-        if (drum.color == currentSequence[currentIndex])
+        if (drumMaterial.color == drums[expectedIndex].material.color)
         {
             currentIndex++;
 
-            // If sequence is complete, generate a new one
-            if (currentIndex == currentSequence.Count)
+            if (currentIndex == sequenceIndices.Count)
             {
                 audioSource.PlayOneShot(correctSound);
                 score += 5;
@@ -277,5 +275,25 @@ public class DrumGameManager : MonoBehaviour
         // Reset sequence
         currentIndex = 0;
         StartCoroutine(GenerateColorSequence());
+    }
+
+
+}
+
+// Extension method to shuffle a list
+public static class ListExtensions
+{
+    public static void Shuffle<T>(this IList<T> list)
+    {
+        System.Random rng = new System.Random();
+        int n = list.Count;
+        while (n > 1)
+        {
+            n--;
+            int k = rng.Next(n + 1);
+            T value = list[k];
+            list[k] = list[n];
+            list[n] = value;
+        }
     }
 }
